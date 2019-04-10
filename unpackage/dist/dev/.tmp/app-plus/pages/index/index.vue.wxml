@@ -1,0 +1,1 @@
+<template name="fdfd28ca"><view class="_view fdfd28ca content"><image class="_image fdfd28ca logo" src="../../static/logo.png"></image><view class="_view fdfd28ca"><text class="_text fdfd28ca title">{{title}}</text></view></view></template>
