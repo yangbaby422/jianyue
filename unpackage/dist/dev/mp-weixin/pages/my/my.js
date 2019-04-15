@@ -54,6 +54,24 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var loginRes, _self;var _default =
 {
   data: function data() {
@@ -61,40 +79,59 @@ var loginRes, _self;var _default =
       storageData: {},
       avatar: '',
       nickname: '',
-      articleCount: 10,
-      followCount: 5,
-      messageCount: 66,
-      integral: 100,
-      articles: [
-      {
-        id: 1,
-        title: '第一篇文章' },
-
-      {
-        id: 2,
-        title: '第二篇文章' },
-
-      {
-        id: 3,
-        title: '第三篇文章' },
-
-      {
-        id: 4,
-        title: '第四篇文章' }] };
-
-
+      //分类信息
+      categories: [{ cateid: 0, name: '文章' }, { cateid: 1, name: '关注' }, { cateid: 2, name: '收藏' }, { cateid: 3, name: '积分' }],
+      // 当前选择的分类
+      cateCurrentIndex: 0,
+      articles: [],
+      follows: [],
+      collects: [] };
 
   },
+
   onLoad: function onLoad() {},
   onShow: function onShow() {
     var _this = this;
     var loginKey = uni.getStorageSync('login_key');
     if (loginKey) {
-      // console.log(loginKey);
       this.storageData = {
         login: loginKey.login,
         nickname: loginKey.nickname,
-        avatar: loginKey.avatar };
+        avatar: loginKey.avatar,
+        userId: loginKey.userId };
+
+      uni.request({
+        url: this.apiServer + '/article/uId',
+        method: 'GET',
+        header: { 'content-type': 'application/x-www-form-urlencoded' },
+        data: {
+          uId: this.storageData.userId },
+
+        success: function success(res) {
+          _this.articles = res.data.data;
+        } });
+
+      uni.request({
+        url: this.apiServer + '/follow/list',
+        method: 'GET',
+        header: { 'content-type': 'application/x-www-form-urlencoded' },
+        data: {
+          fromUId: this.storageData.userId },
+
+        success: function success(res) {
+          _this.follows = res.data.data;
+        } });
+
+      uni.request({
+        url: this.apiServer + '/collect/list',
+        method: 'GET',
+        header: { 'content-type': 'application/x-www-form-urlencoded' },
+        data: {
+          uId: this.storageData.userId },
+
+        success: function success(res) {
+          _this.collects = res.data.data;
+        } });
 
     } else {
       this.storageData = {
@@ -102,7 +139,7 @@ var loginRes, _self;var _default =
 
     }
     uni.request({
-      url: 'http://47.103.1.138:8080/api/user/' + uni.getStorageSync('login_key').userId,
+      url: 'http://192.168.43.26:8080/api/user/' + uni.getStorageSync('login_key').userId,
       method: 'GET',
       header: { 'content-type': 'application/json' },
       success: function success(res) {
@@ -113,8 +150,30 @@ var loginRes, _self;var _default =
         }
       } });
 
+
+
   },
-  methods: {} };exports.default = _default;
+
+  methods: {
+    tabChange: function tabChange(e) {
+      // 选中的索引
+      var index = e.currentTarget.dataset.index;
+      // 具体的分类id
+      var cateid = e.currentTarget.dataset.cateid;
+      this.cateCurrentIndex = index;
+      // 动态替换内容
+      this.content = this.categories[index].name;
+    },
+    gotoDetail: function gotoDetail(aId) {
+      uni.navigateTo({
+        url: '../article_detail/article_detail?aId=' + aId + '&uId=' + this.storageData.userId });
+
+    },
+    gotoDetail1: function gotoDetail1(aId) {
+      uni.navigateTo({
+        url: '../article_detail/article_detail?aId=' + aId });
+
+    } } };exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ "./node_modules/@dcloudio/uni-mp-weixin/dist/index.js")["default"]))
 
 /***/ }),
@@ -183,45 +242,126 @@ var render = function() {
       )
     ]),
     _vm.storageData.login
-      ? _c("view", { staticClass: "center" }, [
-          _c("view", { staticClass: "info" }, [
-            _c("text", { staticClass: "title" }, [
-              _vm._v(_vm._s(_vm.articleCount))
-            ]),
-            _c("text", [_vm._v("文章")])
-          ]),
-          _c("view", { staticClass: "info" }, [
-            _c("text", { staticClass: "title" }, [
-              _vm._v(_vm._s(_vm.followCount))
-            ]),
-            _c("text", [_vm._v("关注")])
-          ]),
-          _c("view", { staticClass: "info" }, [
-            _c("text", { staticClass: "title" }, [
-              _vm._v(_vm._s(_vm.messageCount))
-            ]),
-            _c("text", [_vm._v("消息")])
-          ]),
-          _c("view", { staticClass: "info" }, [
-            _c("text", { staticClass: "title" }, [
-              _vm._v(_vm._s(_vm.integral))
-            ]),
-            _c("text", [_vm._v("积分")])
-          ])
-        ])
-      : _vm._e(),
-    _vm.storageData.login
-      ? _c("view", { staticClass: "content" }, [
-          _c(
-            "view",
-            { staticClass: "list" },
-            _vm._l(_vm.articles, function(article, index) {
-              return _c("view", { key: index, staticClass: "list-item" }, [
-                _c("text", [_vm._v(_vm._s(article.title))])
-              ])
-            })
-          )
-        ])
+      ? _c(
+          "view",
+          [
+            _c(
+              "scroll-view",
+              {
+                staticClass: "grace-tab-title grace-center",
+                attrs: { "scroll-x": "true", id: "grace-tab-title" }
+              },
+              _vm._l(_vm.categories, function(cate, index) {
+                return _c(
+                  "view",
+                  {
+                    key: index,
+                    class: [
+                      _vm.cateCurrentIndex == index ? "grace-tab-current" : ""
+                    ],
+                    attrs: {
+                      "data-cateid": cate.cateid,
+                      "data-index": index,
+                      eventid: "63c327b5-0-" + index
+                    },
+                    on: { tap: _vm.tabChange }
+                  },
+                  [_vm._v(_vm._s(cate.name))]
+                )
+              })
+            ),
+            _c("view", { staticClass: "demo-content" }, [
+              _vm.cateCurrentIndex === 0
+                ? _c("view", { staticClass: "content" }, [
+                    _c(
+                      "view",
+                      { staticClass: "list" },
+                      _vm._l(_vm.articles, function(article, index) {
+                        return _c(
+                          "view",
+                          { key: index, staticClass: "list-item" },
+                          [
+                            _c(
+                              "text",
+                              {
+                                attrs: { eventid: "63c327b5-1-" + index },
+                                on: {
+                                  tap: function($event) {
+                                    _vm.gotoDetail(article.id)
+                                  }
+                                }
+                              },
+                              [_vm._v(_vm._s(article.title))]
+                            )
+                          ]
+                        )
+                      })
+                    )
+                  ])
+                : _vm._e(),
+              _vm.cateCurrentIndex === 1
+                ? _c("view", { staticClass: "content" }, [
+                    _c(
+                      "view",
+                      { staticClass: "list" },
+                      _vm._l(_vm.follows, function(follow, index) {
+                        return _c(
+                          "view",
+                          { key: index, staticClass: "list-item" },
+                          [
+                            _c("image", {
+                              staticClass: "avatar1 small",
+                              attrs: { src: follow.avatar }
+                            }),
+                            _c(
+                              "text",
+                              { staticStyle: { "margin-left": "20px" } },
+                              [_vm._v(_vm._s(follow.nickname))]
+                            )
+                          ]
+                        )
+                      })
+                    )
+                  ])
+                : _vm._e(),
+              _vm.cateCurrentIndex === 2
+                ? _c("view", { staticClass: "content" }, [
+                    _c(
+                      "view",
+                      { staticClass: "list" },
+                      _vm._l(_vm.collects, function(like, index) {
+                        return _c(
+                          "view",
+                          { key: index, staticClass: "list-item" },
+                          [
+                            _c(
+                              "text",
+                              {
+                                staticStyle: { "margin-left": "20px" },
+                                attrs: { eventid: "63c327b5-2-" + index },
+                                on: {
+                                  tap: function($event) {
+                                    _vm.gotoDetail1(like.aId)
+                                  }
+                                }
+                              },
+                              [_vm._v(_vm._s(like.title))]
+                            )
+                          ]
+                        )
+                      })
+                    )
+                  ])
+                : _vm._e(),
+              _vm.cateCurrentIndex === 3
+                ? _c("view", { staticClass: "content" }, [
+                    _c("text", [_vm._v("积分")])
+                  ])
+                : _vm._e()
+            ])
+          ],
+          1
+        )
       : _vm._e()
   ])
 }

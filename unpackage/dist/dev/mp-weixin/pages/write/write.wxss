@@ -1,1 +1,113 @@
-/* pages/write/write.wxss */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* .content{
+	margin-top: 10px;
+	width: 420px;
+	height: 200px;
+	border:#8F8F94 solid 1px;
+} */
+.jg{
+	 width: 100%;
+	 height: 5px;
+	 background-color:#EEEEEE;
+	 margin-top: 10px;
+}
+

@@ -20,7 +20,7 @@
 	    -ms-flex: 1 1 70%;
 	        flex: 1 1 70%;
 	margin-top: 30px;
-	margin-left: -200px;
+	margin-left: -280px;
 }
 .right {
 	-webkit-box-flex: 1;

@@ -3,6 +3,7 @@
         <view class="article" v-for="(article,index) in articles" :key="index">
 			<!-- 标题 -->
 			<text class="article-title" @tap="gotoDetail(article.id)">{{article.title}}</text>
+			<br />
 			<!-- 大于等于三张图片的显示方式 -->
 			<view class="" v-if="article.imgs.length >= 3">
 				<view class="thumbnail-box">
@@ -28,11 +29,18 @@
 			</view>
 			<!-- 文章作者等信息 -->
 			<view class="article-info">
+				
 				<image :src="article.avatar" class="avatar small"></image>
+				<view class="right2">
 				<text class="info-text">{{article.nickname}}</text>
+				<br />
 				<text class="info-text">{{handleTime(article.createTime)}}</text>
+				
+				</view>
 			</view>
+			<view class="jg"></view>
 		</view>
+		<button class="circle-btn" @tap="gotoWrite"><text class="icon-text">+</text></button>
 	</view>
 </template>
 
@@ -46,7 +54,33 @@
 		onLoad:function() {
 			this.getArticles();
 		},
-		onShow:function(){},
+		onShow: function() {
+			var _this = this;
+			const loginKey = uni.getStorageSync('login_key');
+			if (loginKey) {
+				//console.log(loginKey);
+				this.storageData = {
+					login: loginKey.login,
+					login: loginKey.nickname
+				}
+			} else {
+				this.storageData = {
+					login: false
+				};
+			}
+			uni.request({
+				url: 'http://192.168.43.26:8080/api/user/' + uni.getStorageSync('login_key').userId,
+				method: 'GET',
+				header: { 'content-type': 'application/json' },
+				success: res => {
+					if (res.data.code === 0) {
+						console.log(res.data.data.avatar+'————————————');
+						_this.avatar = res.data.data.avatar;
+						_this.nickname = res.data.data.nickname;
+					}
+				}
+			});
+		},
 		onPullDownRefresh:function(){
 			this.getArticles();
 		},
@@ -69,6 +103,17 @@
 				uni.navigateTo({
 					url:'../article_detail/article_detail?aId=' +aId
 				});
+			},
+			gotoWrite:function(){
+				if(uni.getStorageSync('login_key').login === true){
+				uni.navigateTo({
+					url:'../write/write'
+				});
+				}else{
+					uni.navigateTo({
+						url:'../signin/signin'
+					});
+				}
 			},
 			handleTime: function(date) {
 				var d = new Date(date);
@@ -127,9 +172,12 @@
 	.avatar{
 		width: 50px;
 		height: 50px;
+		margin-top: 25px;
 	}
 	.info-text{
 		margin-left: 10px;
+		margin-top: 10px;
+		color: black;
 	}
 	.text-img-box{
 		display: flex;
@@ -144,4 +192,35 @@
 		width: 100%;
 		height: 100%;
 	}
+	.right2{
+		margin-left: 50px;
+		margin-top: -55px;
+	}
+	.jg{
+	 width: 100%;
+	 height: 9px;
+	 background-color:#EEEEEE;
+	 margin-top: 10px;
+ }
+	.icon-text {
+	color: #fff;
+	}
+	.circle-btn {
+	position: fixed;
+	bottom: 60px;
+	right: 10px;
+	width: 45px;
+	height: 45px;
+	border-radius: 50%;
+	background-color: #de533a;
+	background: linear-gradient(40deg, #ffd86f, #fc6262);
+	/* background-image: url(../../static/Pencil32.png); */
+	box-shadow: 2px 5px 10px #aaa;
+	cursor: pointer;
+	border: none;
+	outline: none;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
 </style>

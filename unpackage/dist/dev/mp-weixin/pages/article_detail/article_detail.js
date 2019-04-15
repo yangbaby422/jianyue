@@ -35,11 +35,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 {
   data: function data() {
     return {
       article: {
         aId: 0,
+        uId: 0,
         title: '',
         content: '',
         avatar: '',
@@ -47,14 +76,15 @@
         createTime: '' },
 
       comments: [],
-      imgs: [],
-      comment: '' };
+      content: '',
+      userId: uni.getStorageSync('login_key').userId,
+      followed: false,
+      collected: false };
 
   },
   onLoad: function onLoad(option) {
     //option为object类型，会序列化上个页面传递的参数
-    console.log(option.aId);
-    this.aId = option.aId;
+    this.article.aId = option.aId;
   },
   onShow: function onShow() {
     this.getArticle();
@@ -63,21 +93,35 @@
     this.getArticle();
   },
   methods: {
-    getArticle: function getArticle() {
+    getArticle: function getArticle() {var _this2 = this;
       var _this = this;
       uni.request({
-        url: this.apiServer + '/article/' + this.aId,
+        url: this.apiServer + '/article/' + this.article.aId,
         method: 'GET',
         header: { 'content-type': 'application/x-www-form-urlencoded' },
+        data: {
+          userId: this.userId },
+
         success: function success(res) {
-          console.log(res.data.data.article.title);
+          // console.log(res.data.data.article);
+          _this.article.aId = res.data.data.article.id;
+          _this.article.uId = res.data.data.article.uid;
           _this.article.title = res.data.data.article.title;
           _this.article.content = res.data.data.article.content;
           _this.article.nickname = res.data.data.article.nickname;
           _this.article.avatar = res.data.data.article.avatar;
           _this.article.createTime = res.data.data.article.createTime;
           _this.comments = res.data.data.comments;
-          _this.imgs = res.data.data.imgs;
+          _this.article.createTime = _this2.handleTime(_this.article.createTime);
+          for (var i = 0; i < _this.comments.length; i++) {
+            _this.comments[i].commentTime = _this.handleTime(_this.comments[i].commentTime);
+          }
+          if (res.data.data.followed === '已关注') {
+            _this.followed = true;
+          }
+          if (res.data.data.collected === '已收藏') {
+            _this.collected = true;
+          }
         },
         complete: function complete() {
           uni.stopPullDownRefresh();
@@ -93,6 +137,104 @@
       var minutes = d.getMinutes() < 10 ? '0' + d.getMinutes() : '' + d.getMinutes();
       var seconds = d.getSeconds() < 10 ? '0' + d.getSeconds() : '' + d.getSeconds();
       return year + '-' + month + '-' + day + ' ' + hour + ':' + minutes + ':' + seconds;
+    },
+    send: function send() {var _this3 = this;
+      console.log('评论人编号：' + this.userId + ',文章编号：' + this.article.aId + '，评论内容：' + this.content);
+      uni.request({
+        url: this.apiServer + '/comment/add',
+        method: 'POST',
+        header: { 'content-type': 'application/x-www-form-urlencoded' },
+        data: {
+          aId: this.article.aId,
+          uId: this.userId,
+          content: this.content },
+
+        success: function success(res) {
+          if (res.data.code === 0) {
+            uni.showToast({
+              title: '评论成功' });
+
+            _this3.getArticle();
+            _this3.content = '';
+          }
+        } });
+
+    },
+    follow: function follow() {var _this4 = this;
+      uni.request({
+        url: this.apiServer + '/follow/add',
+        method: 'POST',
+        header: { 'content-type': 'application/x-www-form-urlencoded' },
+        data: {
+          fromUId: this.userId,
+          toUId: this.article.uId },
+
+        success: function success(res) {
+          if (res.data.code === 0) {
+            uni.showToast({
+              title: '关注成功' });
+
+            _this4.followed = true;
+          }
+        } });
+
+    },
+    collect: function collect() {var _this5 = this;
+      uni.request({
+        url: this.apiServer + '/collect/add',
+        method: 'POST',
+        header: { 'content-type': 'application/x-www-form-urlencoded' },
+        data: {
+          uId: this.userId,
+          aId: this.article.aId },
+
+        success: function success(res) {
+          if (res.data.code === 0) {
+            uni.showToast({
+              title: '收藏成功' });
+
+            _this5.collected = true;
+          }
+        } });
+
+    },
+    cancelFollow: function cancelFollow() {var _this6 = this;
+      uni.request({
+        url: this.apiServer + '/follow/cancel',
+        method: 'POST',
+        header: { 'content-type': 'application/x-www-form-urlencoded' },
+        data: {
+          fromUId: this.userId,
+          toUId: this.article.uId },
+
+        success: function success(res) {
+          if (res.data.code === 0) {
+            uni.showToast({
+              title: '已取消关注' });
+
+            _this6.followed = false;
+          }
+        } });
+
+    },
+    cancelCollect: function cancelCollect() {var _this7 = this;
+      uni.request({
+        url: this.apiServer + '/collect/cancel',
+        method: 'POST',
+        header: { 'content-type': 'application/x-www-form-urlencoded' },
+        data: {
+          uId: this.userId,
+          aId: this.article.aId },
+
+        success: function success(res) {
+          if (res.data.code === 0) {
+            uni.showToast({
+              title: '已取消收藏' });
+
+            _this7.collected = false;
+          }
+        } });
+
     } } };exports.default = _default;
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./node_modules/@dcloudio/uni-mp-weixin/dist/index.js */ "./node_modules/@dcloudio/uni-mp-weixin/dist/index.js")["default"]))
 
@@ -124,26 +266,65 @@ var render = function() {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _c(
-    "view",
-    { staticClass: "container" },
-    [
+  return _c("view", { staticClass: "container" }, [
+    _c("view", { staticClass: "detail-box" }, [
       _c("text", { staticClass: "article-title" }, [
         _vm._v(_vm._s(_vm.article.title))
       ]),
-      _c("view", { staticClass: "article-info" }, [
-        _c("image", {
-          staticClass: "avatar small",
-          attrs: { src: _vm.article.avatar }
-        }),
-        _c("text", [_vm._v(_vm._s(_vm.article.nickname))]),
-        _c("text", { staticClass: "info-text" }, [
-          _vm._v(_vm._s(_vm.handleTime(_vm.article.createTime)))
-        ])
+      _c("view", { staticClass: "article-info-box" }, [
+        _c("view", { staticClass: "article-info" }, [
+          _c("image", {
+            staticClass: "small-avatar",
+            attrs: { src: _vm.article.avatar }
+          }),
+          _c(
+            "view",
+            { staticClass: "right2" },
+            [
+              _c("text", { staticClass: "right-nickename" }, [
+                _vm._v(_vm._s(_vm.article.nickname))
+              ]),
+              _c("br"),
+              _c("text", { staticClass: "right-lou2" }, [
+                _vm._v(_vm._s(_vm.article.createTime))
+              ])
+            ],
+            1
+          )
+        ]),
+        _c(
+          "view",
+          { staticClass: "article-info-follow" },
+          [
+            _vm.userId != _vm.article.uId && !_vm.followed
+              ? _c(
+                  "button",
+                  {
+                    staticClass: "followed-btn",
+                    attrs: { eventid: "4e8dcb75-0" },
+                    on: { tap: _vm.follow }
+                  },
+                  [_vm._v("关注")]
+                )
+              : _vm._e(),
+            _vm.userId != _vm.article.uId && _vm.followed
+              ? _c(
+                  "button",
+                  {
+                    staticClass: " follow-btn cancel",
+                    attrs: { eventid: "4e8dcb75-1" },
+                    on: { tap: _vm.cancelFollow }
+                  },
+                  [_vm._v("取消")]
+                )
+              : _vm._e()
+          ],
+          1
+        )
       ]),
       _c(
         "view",
-        { staticClass: "grace-text" },
+        { staticClass: "grace-text article-content" },
         [
           _c("rich-text", {
             attrs: {
@@ -155,67 +336,108 @@ var render = function() {
         ],
         1
       ),
-      _c("view", { staticClass: "info-text" }, [
-        _vm._v("评论" + _vm._s(_vm.comments.length))
-      ]),
-      _vm._l(_vm.comments, function(comment, index) {
-        return _c("view", { key: index, staticClass: "comment-item" }, [
-          _c("view", { staticClass: "left" }, [
-            _c("image", {
-              staticClass: "avatar small",
-              attrs: { src: comment.avatar }
-            })
-          ]),
-          _c("view", { staticClass: "right" }, [
-            _c("text", [_vm._v(_vm._s(comment.nickname))]),
-            _c("text", [_vm._v(_vm._s(comment.content))]),
-            _c("view", [
-              _c("text", { staticStyle: { "margin-right": "10px" } }, [
-                _vm._v(_vm._s(_vm.comments.length - index) + "楼")
+      _c(
+        "view",
+        { staticClass: "article-info-collect" },
+        [
+          !_vm.collected
+            ? _c(
+                "button",
+                {
+                  staticClass: "collected-btn",
+                  attrs: { eventid: "4e8dcb75-2" },
+                  on: { tap: _vm.collect }
+                },
+                [_vm._v("收藏")]
+              )
+            : _vm._e(),
+          _vm.collected
+            ? _c(
+                "button",
+                {
+                  staticClass: " collect-btn cancel",
+                  attrs: { eventid: "4e8dcb75-3" },
+                  on: { tap: _vm.cancelCollect }
+                },
+                [_vm._v("取消收藏")]
+              )
+            : _vm._e()
+        ],
+        1
+      )
+    ]),
+    _c("view", { staticClass: " article-flow" }),
+    _c("view", { staticClass: "detail-center" }, [
+      _c("view", { staticClass: "detail-center-box" }, [
+        _c("text", { staticClass: "info-text" }, [
+          _vm._v("评论" + _vm._s(_vm.comments.length))
+        ]),
+        _c("text", { staticClass: "info-text" }, [_vm._v("按时间倒序")])
+      ])
+    ]),
+    _c(
+      "view",
+      { staticClass: "detail-second-box" },
+      [
+        _vm._l(_vm.comments, function(comment, index) {
+          return _c("view", { key: index, staticClass: "comment-item" }, [
+            _c("view", { staticClass: "left" }, [
+              _c("image", {
+                staticClass: "small-avatar",
+                attrs: { src: comment.avatar }
+              })
+            ]),
+            _c("view", { staticClass: "right" }, [
+              _c("view", { staticClass: "right-nickename" }, [
+                _c("text", [_vm._v(_vm._s(comment.nickname))])
               ]),
-              _c("text", [_vm._v(_vm._s(_vm.handleTime(comment.commentTime)))])
+              _c("view", { staticClass: " right-content-box" }, [
+                _c("text", [_vm._v(_vm._s(comment.content))])
+              ]),
+              _c("view", { staticClass: "right-lou" }, [
+                _c("text", [
+                  _vm._v(_vm._s(_vm.comments.length - index) + "楼")
+                ]),
+                _c("text", [_vm._v(_vm._s(comment.commentTime))])
+              ])
             ])
           ])
-        ])
-      }),
-      _c("input", {
-        directives: [
-          {
-            name: "model",
-            rawName: "v-model",
-            value: _vm.comment,
-            expression: "comment"
-          }
-        ],
-        staticClass: "uni-input comment-box",
-        attrs: {
-          type: "text",
-          placeholder: "写下你的评论",
-          required: "required",
-          eventid: "4e8dcb75-0"
-        },
-        domProps: { value: _vm.comment },
-        on: {
-          input: function($event) {
-            if ($event.target.composing) {
-              return
+        }),
+        _c("input", {
+          directives: [
+            {
+              name: "model",
+              rawName: "v-model",
+              value: _vm.content,
+              expression: "content"
             }
-            _vm.comment = $event.target.value
+          ],
+          staticClass: "comment-box",
+          attrs: {
+            type: "text",
+            placeholder: "写下你的评论",
+            required: "required",
+            eventid: "4e8dcb75-4"
+          },
+          domProps: { value: _vm.content },
+          on: {
+            input: function($event) {
+              if ($event.target.composing) {
+                return
+              }
+              _vm.content = $event.target.value
+            }
           }
-        }
-      }),
-      _c(
-        "button",
-        {
-          staticClass: "green-btn",
-          attrs: { eventid: "4e8dcb75-1" },
-          on: { tap: _vm.send }
-        },
-        [_vm._v("提交")]
-      )
-    ],
-    2
-  )
+        }),
+        _c(
+          "button",
+          { attrs: { eventid: "4e8dcb75-5" }, on: { tap: _vm.send } },
+          [_vm._v("提交")]
+        )
+      ],
+      2
+    )
+  ])
 }
 var staticRenderFns = []
 render._withStripped = true

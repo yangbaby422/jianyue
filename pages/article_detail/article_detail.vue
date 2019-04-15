@@ -5,8 +5,11 @@
 			<view class="article-info-box">
 				<view class="article-info">
 					<image :src="article.avatar" class="small-avatar"></image>
-					<text class="article-nickname">{{ article.nickname }}</text>
-					<text class="info-text">{{ handleTime(article.createTime) }}</text>
+					<view class="right2">
+						<text class="right-nickename">{{ article.nickname }}</text>
+						<br />
+						<text class="right-lou2">{{ article.createTime }}</text>
+					</view>
 				</view>
 				<view class="article-info-follow">
 					<button v-if="userId != article.uId && !followed"  class="followed-btn" @tap="follow">关注</button>
@@ -14,6 +17,10 @@
 				</view>
 			</view>
 			<view class="grace-text article-content"><rich-text :nodes="article.content" bindtap="tap"></rich-text></view>
+			<view class="article-info-collect">
+				<button v-if="!collected"  class="collected-btn" @tap="collect">收藏</button>
+				<button v-if="collected" class=" collect-btn cancel" @tap="cancelCollect">取消收藏</button>
+			</view>
 		</view>
 		<view class=" article-flow"></view>
 		<view class="detail-center">
@@ -35,7 +42,7 @@
 					</view>
 					<view class="right-lou">
 						<text>{{ comments.length - index }}楼</text>
-						<text>{{ handleTime(comment.commentTime) }}</text>
+						<text>{{ comment.commentTime }}</text>
 					</view>
 				</view>
 			</view>
@@ -61,7 +68,8 @@ export default {
 			comments: [],
 			content: '',
 			userId: uni.getStorageSync('login_key').userId,
-			followed: false
+			followed: false,
+			collected:false,
 		};
 	},
 	onLoad: function(option) {
@@ -94,8 +102,15 @@ export default {
 					_this.article.avatar = res.data.data.article.avatar;
 					_this.article.createTime = res.data.data.article.createTime;
 					_this.comments = res.data.data.comments;
+					_this.article.createTime = this.handleTime(_this.article.createTime)
+					for(var i=0;i<_this.comments.length;i++){
+						_this.comments[i].commentTime = _this.handleTime(_this.comments[i].commentTime)
+					}
 					if (res.data.data.followed === '已关注') {
 						_this.followed = true;
+					}
+					if(res.data.data.collected === '已收藏') {
+						_this.collected = true;
 					}
 				},
 				complete: function() {
@@ -154,6 +169,25 @@ export default {
 				}
 			});
 		},
+		collect:function(){
+			uni.request({
+				url: this.apiServer + '/collect/add',
+				method: 'POST',
+				header: { 'content-type': 'application/x-www-form-urlencoded' },
+				data: {
+					uId: this.userId,
+					aId: this.article.aId
+				},
+				success: res => {
+					if (res.data.code === 0) {
+						uni.showToast({
+							title: '收藏成功'
+						});
+						this.collected = true;
+					}
+				}
+			});
+		},
 		cancelFollow:function(){
 			uni.request({
 				url: this.apiServer + '/follow/cancel',
@@ -172,6 +206,25 @@ export default {
 					}
 				}
 			});
+		},
+		cancelCollect:function(){
+			uni.request({
+				url: this.apiServer + '/collect/cancel',
+				method: 'POST',
+				header: { 'content-type': 'application/x-www-form-urlencoded' },
+				data: {
+					uId: this.userId,
+					aId: this.article.aId
+				},
+				success: res => {
+					if (res.data.code === 0) {
+						uni.showToast({
+							title: '已取消收藏'
+						});
+						this.collected = false;
+					}
+				}
+			});
 		}
 	}
 };
@@ -182,8 +235,9 @@ export default {
 	width: 100%;
 }
 .small-avatar {
-	width: 35px;
-	height: 35px;
+	margin-top: 20px;
+	width: 50px;
+	height: 50px;
 	border-radius: 50%;
 }
 .detail-box {
@@ -209,6 +263,10 @@ button:after {
 	display: flex;
 	align-items: center;
 }
+.article-info-collect {
+	display: flex;
+	align-items: center;
+}
 .comment-box {
 	border: 1px solid #fff;
 	border-radius: 5px;
@@ -223,10 +281,28 @@ button:after {
 	background-color: #E74A39;
 	border-radius: 20px;
 }
+.collected-btn {
+	height: 30x;
+	width: 100px;
+	font-size: 15px;
+	color: #FFFFFF;
+	background-color: #E74A39;
+	border-radius: 20px;
+}
 .follow-btn {
-	height: 30px;
+	height: 30x;
 	width: 80px;
 	font-size: 15px;
+	color: #black;
+	background-color: #darkgray;
+	border-radius: 20px;
+}
+.collect-btn {
+	height: 30x;
+	width: 100px;
+	font-size: 15px;
+	color: #black;
+	background-color: #darkgray;
 	border-radius: 20px;
 }
 .article-info {
@@ -235,9 +311,6 @@ button:after {
 	color: #4c4c4c;
 	font-size: 15px;
 	margin-top: 11px;
-}
-.article-nickname {
-	margin-left: 13px;
 }
 .article-content {
 	color: #4c4c4c;
@@ -273,16 +346,26 @@ button:after {
 .right {
 	margin-left: 10px;
 }
+.right2{
+	margin-left: 10px;
+	margin-top: 15px;
+}
 .right-nickename {
 	color: #2e2e2e;
 	font-size: 18px;
 }
 .right-content-box {
+	margin-top: 10px;
 	font-size: 15px;
 	color: #5e5e5e;
 }
 .right-lou {
-	margin-top: 12px;
+	margin-top: 10px;
+	font-size: 12px;
+	color: #8f8f94;
+}
+.right-lou2 {
+	margin-top: 10px;
 	font-size: 12px;
 	color: #8f8f94;
 }

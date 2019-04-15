@@ -28,7 +28,7 @@ export default {
 			var _this = this;
 			// console.log(userDTO.mobile + ',' + userDTO.password);
 			uni.request({
-				url: 'http://47.103.1.138:8080/api/user/sign_in',
+				url: 'http://192.168.43.26:8080/api/user/sign_in',
 				method: 'POST',
 				data: {
 					mobile: userDTO.mobile,

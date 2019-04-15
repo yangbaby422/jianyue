@@ -8,7 +8,15 @@
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-/* WEBPACK VAR INJECTION */(function(uni) {Object.defineProperty(exports, "__esModule", { value: true });exports.default = void 0;var _default =
+/* WEBPACK VAR INJECTION */(function(uni) {Object.defineProperty(exports, "__esModule", { value: true });exports.default = void 0;function _defineProperty(obj, key, value) {if (key in obj) {Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true });} else {obj[key] = value;}return obj;}var _default =
+
+
+
+
+
+
+
+
 
 
 
@@ -56,7 +64,33 @@
   onLoad: function onLoad() {
     this.getArticles();
   },
-  onShow: function onShow() {},
+  onShow: function onShow() {
+    var _this = this;
+    var loginKey = uni.getStorageSync('login_key');
+    if (loginKey) {
+      //console.log(loginKey);
+      this.storageData = _defineProperty({
+        login: loginKey.login }, "login",
+      loginKey.nickname);
+
+    } else {
+      this.storageData = {
+        login: false };
+
+    }
+    uni.request({
+      url: 'http://192.168.43.26:8080/api/user/' + uni.getStorageSync('login_key').userId,
+      method: 'GET',
+      header: { 'content-type': 'application/json' },
+      success: function success(res) {
+        if (res.data.code === 0) {
+          console.log(res.data.data.avatar + '————————————');
+          _this.avatar = res.data.data.avatar;
+          _this.nickname = res.data.data.nickname;
+        }
+      } });
+
+  },
   onPullDownRefresh: function onPullDownRefresh() {
     this.getArticles();
   },
@@ -79,6 +113,17 @@
       uni.navigateTo({
         url: '../article_detail/article_detail?aId=' + aId });
 
+    },
+    gotoWrite: function gotoWrite() {
+      if (uni.getStorageSync('login_key').login === true) {
+        uni.navigateTo({
+          url: '../write/write' });
+
+      } else {
+        uni.navigateTo({
+          url: '../signin/signin' });
+
+      }
     },
     handleTime: function handleTime(date) {
       var d = new Date(date);
@@ -131,69 +176,100 @@ var render = function() {
   return _c(
     "view",
     { staticClass: "container" },
-    _vm._l(_vm.articles, function(article, index) {
-      return _c("view", { key: index, staticClass: "article" }, [
-        _c(
-          "text",
-          {
-            staticClass: "article-title",
-            attrs: { eventid: "fdfd28ca-0-" + index },
-            on: {
-              tap: function($event) {
-                _vm.gotoDetail(article.id)
-              }
-            }
-          },
-          [_vm._v(_vm._s(article.title))]
-        ),
-        article.imgs.length >= 3
-          ? _c("view", {}, [
+    [
+      _vm._l(_vm.articles, function(article, index) {
+        return _c(
+          "view",
+          { key: index, staticClass: "article" },
+          [
+            _c(
+              "text",
+              {
+                staticClass: "article-title",
+                attrs: { eventid: "fdfd28ca-0-" + index },
+                on: {
+                  tap: function($event) {
+                    _vm.gotoDetail(article.id)
+                  }
+                }
+              },
+              [_vm._v(_vm._s(article.title))]
+            ),
+            _c("br"),
+            article.imgs.length >= 3
+              ? _c("view", {}, [
+                  _c(
+                    "view",
+                    { staticClass: "thumbnail-box" },
+                    _vm._l(article.imgs, function(item, index1) {
+                      return index1 < 3
+                        ? _c(
+                            "view",
+                            { key: index1, staticClass: "thumbnail-item" },
+                            [_c("image", { attrs: { src: item.imgUrl } })]
+                          )
+                        : _vm._e()
+                    })
+                  )
+                ])
+              : article.imgs.length >= 1
+              ? _c("view", {}, [
+                  _c("view", { staticClass: "text-img-box" }, [
+                    _c("view", { staticClass: "left" }, [
+                      _c("text", [
+                        _vm._v(
+                          _vm._s(_vm.handleContent(article.content)) + "..."
+                        )
+                      ])
+                    ]),
+                    _c("view", { staticClass: "right" }, [
+                      _c("image", {
+                        attrs: {
+                          src: article.imgs[article.imgs.length - 1].imgUrl
+                        }
+                      })
+                    ])
+                  ])
+                ])
+              : _c("view", { staticClass: "text-box" }, [
+                  _c("text", [_vm._v(_vm._s(article.title))])
+                ]),
+            _c("view", { staticClass: "article-info" }, [
+              _c("image", {
+                staticClass: "avatar small",
+                attrs: { src: article.avatar }
+              }),
               _c(
                 "view",
-                { staticClass: "thumbnail-box" },
-                _vm._l(article.imgs, function(item, index1) {
-                  return index1 < 3
-                    ? _c(
-                        "view",
-                        { key: index1, staticClass: "thumbnail-item" },
-                        [_c("image", { attrs: { src: item.imgUrl } })]
-                      )
-                    : _vm._e()
-                })
-              )
-            ])
-          : article.imgs.length >= 1
-          ? _c("view", {}, [
-              _c("view", { staticClass: "text-img-box" }, [
-                _c("view", { staticClass: "left" }, [
-                  _c("text", [
-                    _vm._v(_vm._s(_vm.handleContent(article.content)) + "...")
+                { staticClass: "right2" },
+                [
+                  _c("text", { staticClass: "info-text" }, [
+                    _vm._v(_vm._s(article.nickname))
+                  ]),
+                  _c("br"),
+                  _c("text", { staticClass: "info-text" }, [
+                    _vm._v(_vm._s(_vm.handleTime(article.createTime)))
                   ])
-                ]),
-                _c("view", { staticClass: "right" }, [
-                  _c("image", {
-                    attrs: { src: article.imgs[article.imgs.length - 1].imgUrl }
-                  })
-                ])
-              ])
-            ])
-          : _c("view", { staticClass: "text-box" }, [
-              _c("text", [_vm._v(_vm._s(article.title))])
+                ],
+                1
+              )
             ]),
-        _c("view", { staticClass: "article-info" }, [
-          _c("image", {
-            staticClass: "avatar small",
-            attrs: { src: article.avatar }
-          }),
-          _c("text", { staticClass: "info-text" }, [
-            _vm._v(_vm._s(article.nickname))
-          ]),
-          _c("text", { staticClass: "info-text" }, [
-            _vm._v(_vm._s(_vm.handleTime(article.createTime)))
-          ])
-        ])
-      ])
-    })
+            _c("view", { staticClass: "jg" })
+          ],
+          1
+        )
+      }),
+      _c(
+        "button",
+        {
+          staticClass: "circle-btn",
+          attrs: { eventid: "fdfd28ca-1" },
+          on: { tap: _vm.gotoWrite }
+        },
+        [_c("text", { staticClass: "icon-text" }, [_vm._v("+")])]
+      )
+    ],
+    2
   )
 }
 var staticRenderFns = []

@@ -23,11 +23,15 @@
         },
         {
             "path" : "pages/signin/signin",
-            "style" : {}
+            "style" : {
+				"navigationBarTitleText" : "登录"
+			}
         },
         {
             "path" : "pages/write/write",
-            "style" : {}
+            "style" : {
+				"navigationBarTitleText" : "写文章"
+			}
         },
         {
             "path" : "pages/info/info",
@@ -37,7 +41,9 @@
         },
         {
             "path" : "pages/setting/setting",
-            "style" : {}
+            "style" : {
+				"navigationBarTitleText" : "设置"
+			}
         },
         {
             "path" : "pages/info/name",
@@ -63,6 +69,7 @@
 				 "navigationBarTitleText" : "文章详情"
 			}
         }
+		
     ],
     "globalStyle" : {
         "navigationBarTextStyle" : "black",
