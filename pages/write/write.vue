@@ -1,113 +1,363 @@
 <template>
-	<view class="container">
-		<!-- 文章标题输入框，和title变量绑定 -->
-		<input type="text" class="title" v-model="title" placeholder="请输入标题" />
-		<view class="jg"></view>
-		<!-- 文章内容输入的多行文本域，绑定content变量 -->
-		<textarea placeholder="输入内容" v-model="content" class="content" />
-		<!-- 选择图片的按钮，点击触发chooseImg方法 -->
-		<button class="add-btn" @tap="chooseImg">选择图片</button>
-		<text>预览</text>
-		<!-- 使用graceUI的富文本解析功能，来预览文章内容 -->
-		<view class="grace-text">
-			<rich-text :nodes="content" bindtap="tap"></rich-text>
+	<view>
+		<view>
+			<view class="toolbar">
+				<view class="iconfont icon-bold" @click="toolBarClick('bold')"></view>
+				<view class="iconfont icon-italic" @click="toolBarClick('italic')"></view>
+				<view class="iconfont icon-xiahuaxian1" @click="toolBarClick('header')"></view>
+				<view class="iconfont icon-underline" @click="toolBarClick('underline')"></view>
+				<view class="iconfont icon-strike" @click="toolBarClick('strike')"></view>
+				<view class="iconfont icon-alignleft" @click="toolBarClick('alignleft')"></view>
+				<view class="iconfont icon-aligncenter" @click="toolBarClick('aligncenter')"></view>
+				<view class="iconfont icon-alignright" @click="toolBarClick('alignright')"></view>
+				<view class="iconfont icon-link" @click="toolBarClick('link')"></view>
+				<view class="iconfont icon-image" @tap="chooseImg"></view>
+				<view class="iconfont icon-qingkong" @click="toolBarClick('clear')"></view>
+				<view class="iconfont editor_submit" @click="toolBarClick('submit')">保存</view>
+				<view class="iconfont editor_submit" @tap="changelook" v-if="followed">预览</view>
+				<view class="iconfont editor_submit" @tap="changelook1" v-if="!followed">取消</view>
+			</view>
+			<!-- 文章标题输入框，和title变量绑定 -->
+			<input type="text" class="input_title" v-model="title" placeholder="请输入标题" v-show="look"/>
+			<view class="my_textarea" contentEditable="true" v-model="myTextarea" v-show="look">
+				<textarea placeholder="输入内容" v-model="content" class="content" maxlength="1000" v-show="look" />
+				</view>
+			<view class="grace-text" v-show="!look">
+				<rich-text :nodes="title" bindtap="tap"></rich-text>
+					<rich-text :nodes="content" bindtap="tap"></rich-text>
+				</view>
+				<button class="submit" @tap="postArticle">发布文章</button>
+			<qfAlert @closeAlert='closeAlert()' contentType='input' :isOpen='isOpen' ref='qfAlert_ipt' @submitAlert='submitLink'></qfAlert>
+			<qfAlert @closeAlert='closeImageAlert()' contentType='image' :isOpen='isOpen4' ref='qfAlert' @submitAlert='submitImageLink'></qfAlert>
+			<qfAlert contentType='text' content='请先选中要添加链接的文本!' :isOpen='isOpen2' @submitAlert='closeTip()'></qfAlert>
+			<qfAlert @closeAlert='closeClean()' contentType='text' content='确定清空吗？' :isOpen='isOpen3' @submitAlert='isClean()'></qfAlert>
 		</view>
-		<button class="green-btn" @tap="postArticle">发布文章</button>
 	</view>
 </template>
 
 <script>
-export default {
-	data() {
-		return {
-			title: '',
-			content: '',
-			userId: uni.getStorageSync('login_key').userId,
-			imgs: []
-		};
-	},
-	methods: {
-		chooseImg: function() {
-			var _this = this;
-			uni.chooseImage({
-				count: 1,
-				sizeType: ['original', 'compressed'],
-				sourceType: ['album'],
-				success: function(res) {
-					console.log(JSON.stringify(res.tempFilePaths));
-					uni.uploadFile({
-						url: _this.apiServer + '/avatar/upload',
-						filePath: res.tempFilePaths[0],
-						name: 'file',
-						success: uploadFileRes => {
-							//图片上传成功，回显图片地址
-							console.log(uploadFileRes.data);
-							//将图片地址加入imgs数组
-							_this.imgs.push(uploadFileRes.data);
-							//将图片地址拼接HTML标签，加入文章内容
-							_this.content += '<img src="' + uploadFileRes.data + '" width = "100%"/>';
-						}
-					});
-				}
-			});
+	import uParse from '../../components/uParse/src/wxParse.vue'
+	import qfAlert from '../../components/qf-alert.vue'
+	export default {
+		name: "qf-editor",
+		components: {
+			uParse,
+			qfAlert
 		},
-		postArticle: function() {
-			var _this = this;
-			uni.request({
-				url: this.apiServer + '/article/add',
-				method: 'POST',
-				header: { 'content-type': 'application/x-www-form-urlencoded' },
-				data: {
-					uId: this.userId,
-					title: this.title,
-					content: '<div>' + this.content + '</div>'
-				},
-				success: res => {
-					if (res.data.code === 0) {
-						//获得发布文章成功返回的文章id
-						var aId = res.data.data;
-						console.log(aId);
-						uni.showToast({
-							title: '发布成功'
-						});
-						//将文章id和文章对应的图片地址数组传到后台，存入数据库
-						uni.request({
-							url: this.apiServer + '/img/add',
-							method: 'POST',
-							header: { 'content-type': 'application/x-www-form-urlencoded' },
-							data: {
-								aId: aId,
-								imgs: JSON.stringify(_this.imgs)  //序列化imgs数组
-							},
-							success: res => {
-								if (res.data.code === 0) {
-									console.log('文章图片地址已写入数据库');
-								}
+		data: function() {
+			return {
+				myTextarea: '',
+				link: '',
+				imageLink: '',
+				isOpen: false,
+				isOpen2: false,
+				isOpen3: false,
+				isOpen4: false,
+				endOffset: 0,
+				startOffset: 0,
+				endContainer: '',
+				startContainer: '',
+				title: '',
+				content: '',
+				userId: uni.getStorageSync('login_key').userId,
+				imgs: [],
+				look:true,
+				followed: true
+			}
+		},
+		props: {
+		},
+		onLoad: function(option) {
+				uni.setNavigationBarTitle({
+				title: '写文章'
+			});
+			
+		},
+		methods: {
+			/* 选择图片上传方法 */
+			chooseImg: function() {
+				var _this = this;
+				uni.chooseImage({
+					count: 1,
+					sizeType: ['original', 'compressed'],
+					sourceType: ['album'],
+					success: function(res) {
+						console.log(JSON.stringify(res.tempFilePaths));
+						uni.uploadFile({
+							url: _this.apiServer + '/avatar/upload',
+							filePath: res.tempFilePaths[0],
+							name: 'file',
+							success: uploadFileRes => {
+								//图片上传成功，回显图片地址
+								console.log(uploadFileRes.data);
+								//将图片地址加入imgs数组
+								_this.imgs.push(uploadFileRes.data);
+								//将图片地址拼接HTML标签，加入文章内容
+								_this.content += '<img src="' + uploadFileRes.data + '" width = "100%"/>';
 							}
 						});
-						uni.switchTab({
-							url: '../index/index'
-						});
 					}
+				});
+			},
+           changelook:function(){
+	            var _this = this;
+				_this.look=false;
+				_this.followed=false;
+             },
+			  changelook1:function(){
+			      var _this = this;
+			 	  _this.look=true;
+			 	  _this.followed=true;
+			   },
+			/* 发布文章方法 */
+			postArticle: function() {
+				var _this = this;
+				uni.showLoading({
+					title:'发表中'
+				})
+				uni.request({
+					url: this.apiServer + '/article/add',
+					method: 'POST',
+					header: {
+						'content-type': 'application/x-www-form-urlencoded'
+					},
+					data: {
+						uId: this.userId,
+						title: this.title,
+						content: '<div>' + this.content + '</div>'
+					},
+					success: res => {
+						if (res.data.code === 0 ) {
+							//获得发布文章成功返回的文章id
+							var aId = res.data.data;
+							console.log(aId);
+							//将文章id和文章对应的图片地址数组传到后台，存入数据库
+							uni.request({
+								url: this.apiServer + '/img/add',
+								method: 'POST',
+								header: {
+									'content-type': 'application/x-www-form-urlencoded'
+								},
+								data: {
+									aId: aId,
+									imgs: JSON.stringify(_this.imgs) //序列化imgs数组
+								},
+								success: res => {
+									if (res.data.code === 0) {
+										console.log('文章图片地址已写入数据库');
+									}
+								}
+							});
+							uni.hideToast();
+							uni.showToast({
+								title: '发布成功',
+								duration:5000
+							});
+							uni.switchTab({
+								url: '../index/index'
+							});
+						}
+					}
+				});
+			},
+			toolBarClick(type) {
+				if (type == 'bold') {
+					var bold = document.execCommand("bold", false, null)
+				} else if (type == "italic") {
+					document.execCommand("italic", false, null)
+				} else if (type == "header") {
+					uni.showActionSheet({
+						itemList: ["标题1", "标题2", "标题3", "标题4", "标题5", "标题6"],
+						success: res => {
+							switch (res.tapIndex) {
+								case 0:
+									document.execCommand("fontsize", false, 1);
+									return;
+								case 1:
+									document.execCommand("fontsize", false, 2);
+									return;
+								case 2:
+									document.execCommand("fontsize", false, 3);
+									return;
+								case 3:
+									document.execCommand("fontsize", false, 4);
+									return;
+								case 4:
+									document.execCommand("fontsize", false, 5);
+									return;
+								case 5:
+									document.execCommand("fontsize", false, 6);
+									return;
+							}
+						}
+					})
+				} else if (type == "underline") {
+					alert("ok");
+					document.execCommand("underline", false, null);
+				} else if (type == "strike") {
+					document.execCommand("strikeThrough", false, null)
+				} else if (type == "alignleft") {
+					document.execCommand("justifyLeft", false, null)
+				} else if (type == "aligncenter") {
+					document.execCommand("justifyCenter", false, null)
+				} else if (type == "alignright") {
+					document.execCommand("justifyRight", false, null)
+				} else if (type == "link") {
+					let selection = document.getSelection();
+					console.log(selection.getRangeAt(0));
+					if (selection.type == "Range") {
+						var range = selection.getRangeAt(0);
+						this.endOffset = range.endOffset;
+						this.startOffset = range.startOffset;
+						this.endContainer = range.endContainer;
+						this.startContainer = range.startContainer;
+						this.isOpen = 'true';
+					} else {
+						this.isOpen2 = 'true';
+					}
+				} else if (type == "imgage") {
+					//document.execCommand("insertimage", false, "http://dinxin.suchenqiang.cn/public/upload/image/20190402/59310adb40594ae1fbdb5dd1fd009a15.jpg")
+					let selection = document.getSelection();
+					console.log(selection)
+					if (selection.type != "None") {
+						this.isOpen4 = 'true';
+					}
+				} else if (type == "clear") {
+					 uni.showModal({
+						title: "提示",
+						content: "确定清空?",
+						cancelText:'取消',
+						cancelColor:'#EA6F5A',
+						success: res => {
+							if (res.confirm) {
+								this.content = "";
+								this.title="";
+							}
+						}
+					}) 
+				} else if (type == "submit") {
+					if (this.content != '') {
+						/* alert(this.myTextarea.target.innerHTML); */
+						/* console.log(this.myTextarea.target.innerHTML); */
+						 uni.showToast({
+							 title:'保存成功！'
+						 }) ;
+					}else{
+						 uni.showModal({
+							title: "提示",
+							content: "文章内容为空！",
+					})  
+				 }
 				}
-			});
+			},
+			closeAlert() {
+				this.isOpen = false;
+			},
+			closeImageAlert() {
+				this.isOpen4 = false;
+				this.$refs.qfAlert.imageLink = '';
+			},
+			closeTip() {
+				this.isOpen2 = false;
+			},
+			closeClean() {
+				this.isOpen3 = false;
+			},
+			submitLink(data) {
+				this.link = this.$refs.qfAlert_ipt.link;
+				this.isOpen = false;
+				let selection = window.getSelection();
+				let range = document.createRange();
+				selection.removeAllRanges();
+				range.setStart(this.startContainer, this.startOffset);
+				range.setEnd(this.endContainer, this.endOffset);
+				selection.addRange(range);
+				document.execCommand("createlink", false, this.link);
+			},
+			submitImageLink(data) {
+				this.isOpen4 = false;
+				this.imageLink = this.$refs.qfAlert.imageLink;
+				document.execCommand('insertHTML', false, "<image style='width:80%' src='" + this.imageLink + "'></image>");
+				this.$refs.qfAlert.imageLink = '';
+			},
+			isClean() {
+				this.closeClean();
+				if (this.myTextarea != '') {
+					this.myTextarea.target.innerHTML = "";
+				}
+			}
 		}
 	}
-};
 </script>
 
+
 <style>
+	@import '../../static/richtext/markdown.css';
+	@import url("../../components/uParse/src/wxParse.css");
+	.toolbar {
+		width: 100%;
+		border: none;
+		box-shadow: 0 0upx 4upx rgba(0, 0, 0, 0.157), 0 0upx 4upx rgba(0, 0, 0, 0.227);
+	}
+	.toolbar .iconfont {
+		display: inline-block;
+		cursor: pointer;
+		height: 61.6upx;
+		width: 61.6upx;
+		margin: 13upx 0 11upx 0upx;
+		font-size: 33upx;
+		padding: 10upx 13upx 11upx 8upx;
+		color: #757575;
+		border-radius: 11upx;
+		text-align: center;
+		background: none;
+		border: none;
+		outline: none;
+		line-height: 2.2;
+		vertical-align: middle;
+	}
+	.my_textarea {
+		width: 100%;
+		height: 400px;
+		box-sizing: border-box;
+		outline: none;
+		padding: 10px;
+		border-bottom:1px solid #6f6f6f;
+		
+	}
+	.my_textarea .img {
+		width: 100% !important;
+	}
+	.toolbar .editor_submit {
+		font-size: 12px;
+		line-height: 35px;
+	}
 	
-	/* .content{
-		margin-top: 10px;
-		width: 420px;
-		height: 200px;
-		border:#8F8F94 solid 1px;
-	} */
-	.jg{
-		 width: 100%;
-		 height: 5px;
-		 background-color:#EEEEEE;
-		 margin-top: 10px;
+	.submit{
+		    position: absolute;
+			bottom: 15px;
+			right: 100px;
+			position: fixed;
+			width: 50%;
+			height: 58px;
+			border-radius: 10px;
+			background-color: rgb(234, 111, 90);
+			color: rgb(255,255,255);
+			border: none;
+			outline: none;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		
+	}
+	
+	.look{
+		width: 40%;
+		float: left;
+	}
+	
+	.input_title{
+		height: 50px;
+		border-bottom:2px dotted #6f6f6f;
 	}
 </style>
